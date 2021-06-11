@@ -76,6 +76,16 @@ namespace mediasoupclient
 		// clang-format on
 	}
 
+	Sdp::RemoteSdp::~RemoteSdp()
+	{
+		MSC_TRACE();
+
+		for (const auto* mediaSection : this->mediaSections)
+		{
+			delete mediaSection;
+		}
+	}
+
 	void Sdp::RemoteSdp::UpdateIceParameters(const json& iceParameters)
 	{
 		MSC_TRACE();
@@ -161,6 +171,39 @@ namespace mediasoupclient
 		{
 			this->AddMediaSection(mediaSection);
 		}
+	}
+
+	void Sdp::RemoteSdp::SendSctpAssociation(json& offerMediaObject)
+	{
+		nlohmann::json emptyJson;
+		auto* mediaSection = new AnswerMediaSection(
+		  this->iceParameters,
+		  this->iceCandidates,
+		  this->dtlsParameters,
+		  this->sctpParameters,
+		  offerMediaObject,
+		  emptyJson,
+		  emptyJson,
+		  nullptr);
+
+		this->AddMediaSection(mediaSection);
+	}
+
+	void Sdp::RemoteSdp::RecvSctpAssociation()
+	{
+		nlohmann::json emptyJson;
+		auto* mediaSection = new OfferMediaSection(
+		  this->iceParameters,
+		  this->iceCandidates,
+		  this->dtlsParameters,
+		  this->sctpParameters,
+		  "datachannel", // mid
+		  "application", // kind
+		  emptyJson,     // offerRtpParameters
+		  "",            // streamId
+		  ""             // trackId
+		);
+		this->AddMediaSection(mediaSection);
 	}
 
 	void Sdp::RemoteSdp::Receive(
@@ -255,8 +298,8 @@ namespace mediasoupclient
 		// Store it in the map.
 		if (!reuseMid.empty())
 		{
-			const auto idx             = this->midToIndex[reuseMid];
-			const auto oldMediaSection = this->mediaSections[idx];
+			const auto idx              = this->midToIndex[reuseMid];
+			auto* const oldMediaSection = this->mediaSections[idx];
 
 			// Replace the index in the vector with the new media section.
 			this->mediaSections[idx] = newMediaSection;
@@ -276,8 +319,8 @@ namespace mediasoupclient
 		}
 		else
 		{
-			const auto idx             = this->midToIndex[newMediaSection->GetMid()];
-			const auto oldMediaSection = this->mediaSections[idx];
+			const auto idx              = this->midToIndex[newMediaSection->GetMid()];
+			auto* const oldMediaSection = this->mediaSections[idx];
 
 			// Replace the index in the vector with the new media section.
 			this->mediaSections[idx] = newMediaSection;

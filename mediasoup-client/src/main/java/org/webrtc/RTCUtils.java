@@ -40,6 +40,8 @@ public class RTCUtils {
     return new RtpParameters.Encoding(
         rid,
         active,
+        1,
+        1,
         maxBitrateBps,
         minBitrateBps,
         maxFramerate,

@@ -4,8 +4,8 @@ project(mediasoupclient LANGUAGES CXX)
 
 # Set version number.
 set(mediasoupclient_VERSION_MAJOR 3)
-set(mediasoupclient_VERSION_MINOR 0)
-set(mediasoupclient_VERSION_PATCH 8)
+set(mediasoupclient_VERSION_MINOR 1)
+set(mediasoupclient_VERSION_PATCH 5)
 
 # Configure a header file to pass the version.
 configure_file (
@@ -14,7 +14,7 @@ configure_file (
 )
 
 # C++ standard requirements.
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Project options.
@@ -60,6 +60,8 @@ set(HEADER_FILES
 set(
 	SOURCE_FILES
 	src/Consumer.cpp
+	src/DataConsumer.cpp
+	src/DataProducer.cpp
 	src/Device.cpp
 	src/Handler.cpp
 	src/Logger.cpp
@@ -128,9 +130,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 # Public (interface) dependencies.
 if("${ANDROID_ABI}" STREQUAL "")
 	target_link_libraries(${PROJECT_NAME} PUBLIC
-		sdptransform
-		${LIBWEBRTC_BINARY_PATH}/libwebrtc${CMAKE_STATIC_LIBRARY_SUFFIX}
-	)
+			sdptransform
+			${LIBWEBRTC_BINARY_PATH}/libwebrtc${CMAKE_STATIC_LIBRARY_SUFFIX}
+			)
 else()
 	# Add '-whole-archive' to keep symbols from peerconnection_jni.
 	# https://stackoverflow.com/a/5687860/2085408

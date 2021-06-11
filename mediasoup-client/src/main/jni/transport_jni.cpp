@@ -47,6 +47,25 @@ std::future<std::string> SendTransportListenerJni::OnProduce(
 	return promise.get_future();
 }
 
+std::future<std::string> SendTransportListenerJni::OnProduceData(SendTransport *transport,
+																 const json &sctpStreamParameters,
+																 const std::string &label,
+																 const std::string &protocol,
+																 const json &appData) {
+	JNIEnv* env = webrtc::AttachCurrentThreadIfNeeded();
+	auto result = Java_Listener_onProduceData(
+			env,
+			j_listener_,
+			j_transport_,
+			NativeToJavaString(env, sctpStreamParameters.dump()),
+			NativeToJavaString(env, label),
+			NativeToJavaString(env, protocol),
+			NativeToJavaString(env, appData.dump()));
+	std::promise<std::string> promise;
+	promise.set_value(JavaToNativeString(env, result));
+	return promise.get_future();
+}
+
 std::future<void> RecvTransportListenerJni::OnConnect(Transport* /*transport*/, const json& dtlsParameters)
 {
 	JNIEnv* env = webrtc::AttachCurrentThreadIfNeeded();

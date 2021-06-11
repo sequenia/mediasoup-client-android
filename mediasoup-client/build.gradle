@@ -7,12 +7,12 @@ def WEBRTC_INC_PATH = "${projectDir}/deps/webrtc/src"
 def WEBRTC_LIB_PATH = "${projectDir}/deps/webrtc/lib"
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 30
     ndkVersion "20.0.5594570"
 
     defaultConfig {
-        minSdkVersion 18
-        targetSdkVersion 28
+        minSdkVersion 23
+        targetSdkVersion 30
         versionCode 308
         versionName "3.0.8"
 
@@ -60,7 +60,7 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    api fileTree(dir: WEBRTC_LIB_PATH, include: ['libwebrtc.jar'])
+    api fileTree(dir: WEBRTC_LIB_PATH, include: ['libwebrtc.aar'])
 
     implementation 'androidx.appcompat:appcompat:1.1.0'
     testImplementation 'junit:junit:4.13'
