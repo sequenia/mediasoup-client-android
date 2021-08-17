@@ -1,5 +1,5 @@
 apply plugin: 'com.android.library'
-apply plugin: 'com.novoda.bintray-release'
+apply plugin: 'maven-publish'
 
 // Source of webrtc.
 def WEBRTC_INC_PATH = "${projectDir}/deps/webrtc/src"
@@ -73,11 +73,16 @@ task sourcesJar(type: Jar) {
     from android.sourceSets.main.java.srcDirs
 }
 
-publish {
-    userOrg = 'haiyangwu'
-    groupId = 'org.mediasoup.droid'
-    artifactId = 'mediasoup-client'
-    publishVersion = '3.0.8-beta-3'
-    desc = 'mediasoup android client side library'
-    website = 'https://github.com/haiyangwu/mediasoup-client-android'
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+
+                groupId = 'com.sequenia.gitlab'
+                artifactId = 'mediasoup-client'
+                version = '1.0'
+            }
+        }
+    }
 }
