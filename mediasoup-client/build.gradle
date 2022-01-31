@@ -13,8 +13,8 @@ android {
     defaultConfig {
         minSdkVersion 23
         targetSdkVersion 30
-        versionCode 308
-        versionName "3.0.8"
+        versionCode 309
+        versionName "3.1.5"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -86,7 +86,7 @@ afterEvaluate {
 
                 groupId = 'com.sequenia.gitlab.outsource'
                 artifactId = 'mediasoup-client'
-                version = '3.0.8'
+                version = '3.1.5'
             }
         }
     }
