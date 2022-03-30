@@ -36,7 +36,8 @@ public class RTCUtils {
       Integer maxFramerate,
       Integer numTemporalLayers,
       Double scaleResolutionDownBy,
-      Long ssrc) {
+      Long ssrc,
+      boolean adaptiveAudioPacketTime) {
     return new RtpParameters.Encoding(
         rid,
         active,
@@ -47,7 +48,8 @@ public class RTCUtils {
         maxFramerate,
         numTemporalLayers,
         scaleResolutionDownBy,
-        ssrc);
+        ssrc,
+        adaptiveAudioPacketTime);
   }
 
   public static MediaStreamTrack createMediaStreamTrack(long nativeTrack) {
