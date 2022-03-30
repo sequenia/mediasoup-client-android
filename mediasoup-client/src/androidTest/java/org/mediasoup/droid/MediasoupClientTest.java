@@ -1,5 +1,13 @@
 package org.mediasoup.droid;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mediasoup.droid.Utils.exceptionException;
+import static org.mediasoup.droid.data.Parameters.nativeGenTransportRemoteParameters;
+
 import android.text.TextUtils;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -18,14 +26,6 @@ import org.webrtc.VideoTrack;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mediasoup.droid.Utils.exceptionException;
-import static org.mediasoup.droid.data.Parameters.nativeGenTransportRemoteParameters;
 
 @RunWith(AndroidJUnit4.class)
 public class MediasoupClientTest extends BaseTest {
@@ -176,9 +176,9 @@ public class MediasoupClientTest extends BaseTest {
       String appData = "{\"baz\":\"BAZ\"}";
 
       List<RtpParameters.Encoding> encodings = new ArrayList<>();
-      encodings.add(RTCUtils.genRtpEncodingParameters(null, false, 0, 0, 0, 0, 1.0d, 1L));
-      encodings.add(RTCUtils.genRtpEncodingParameters(null, false, 0, 0, 0, 0, 1.0d, 2L));
-      encodings.add(RTCUtils.genRtpEncodingParameters(null, false, 0, 0, 0, 0, 1.0d, 3L));
+      encodings.add(RTCUtils.genRtpEncodingParameters(null, false, 0, 0, 0, 0, 1.0d, 1L, true));
+      encodings.add(RTCUtils.genRtpEncodingParameters(null, false, 0, 0, 0, 0, 1.0d, 2L, true));
+      encodings.add(RTCUtils.genRtpEncodingParameters(null, false, 0, 0, 0, 0, 1.0d, 3L, true));
 
       audioTrack = PeerConnectionUtils.createAudioTrack(mContext, "audio-track-id");
       assertNotEquals(0, RTCUtils.getNativeMediaStreamTrack(audioTrack));
