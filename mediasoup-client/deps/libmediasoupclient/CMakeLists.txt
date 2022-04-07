@@ -19,8 +19,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Project options.
 option(MEDIASOUPCLIENT_BUILD_TESTS "Build unit tests" OFF)
-option(MEDIASOUPCLIENT_LOG_TRACE   "Enable MSC_LOG_TRACE (See Logger.hpp)" OFF)
-option(MEDIASOUPCLIENT_LOG_DEV     "Enable MSC_LOG_DEV (See Logger.hpp)" OFF)
+option(MEDIASOUPCLIENT_LOG_TRACE   "Enable MSC_LOG_TRACE (See Logger.hpp)" ON)
+option(MEDIASOUPCLIENT_LOG_DEV     "Enable MSC_LOG_DEV (See Logger.hpp)" ON)
 
 # Project configuration.
 set(LIBWEBRTC_INCLUDE_PATH "" CACHE STRING "libwebrtc include path")
