@@ -3,9 +3,11 @@ package org.mediasoup.droid;
 public class Device {
 
   private long mNativeDevice;
+  private final PeerConnection.Options pcOptions;
 
-  public Device() {
+  public Device(PeerConnection.Options options) {
     mNativeDevice = nativeNewDevice();
+    pcOptions = options;
   }
 
   public void dispose() {
@@ -16,7 +18,12 @@ public class Device {
 
   public void load(String routerRtpCapabilities) throws MediasoupException {
     checkDeviceExists();
-    nativeLoad(mNativeDevice, routerRtpCapabilities);
+
+    org.webrtc.PeerConnection.RTCConfiguration config =
+            getRTCConfigurationFromPeerConnectionOptions();
+    long factory = getFactoryFromPeerConnectionOptions();
+
+    nativeLoad(mNativeDevice, routerRtpCapabilities, config, factory);
   }
 
   public boolean isLoaded() {
@@ -39,22 +46,15 @@ public class Device {
       String id,
       String iceParameters,
       String iceCandidates,
-      String dtlsParameters)
-      throws MediasoupException {
-    return createSendTransport(
-        listener, id, iceParameters, iceCandidates, dtlsParameters, null, null);
-  }
-
-  public SendTransport createSendTransport(
-      SendTransport.Listener listener,
-      String id,
-      String iceParameters,
-      String iceCandidates,
       String dtlsParameters,
-      PeerConnection.Options options,
       String appData)
       throws MediasoupException {
     checkDeviceExists();
+
+    org.webrtc.PeerConnection.RTCConfiguration config =
+            getRTCConfigurationFromPeerConnectionOptions();
+    long factory = getFactoryFromPeerConnectionOptions();
+
     return nativeCreateSendTransport(
         mNativeDevice,
         listener,
@@ -62,10 +62,8 @@ public class Device {
         iceParameters,
         iceCandidates,
         dtlsParameters,
-        (options != null ? options.mRTCConfig : null),
-        (options != null && options.mFactory != null
-            ? options.mFactory.getNativePeerConnectionFactory()
-            : 0L),
+        config,
+        factory,
         appData);
   }
 
@@ -77,20 +75,12 @@ public class Device {
       String dtlsParameters,
       String appData)
       throws MediasoupException {
-    return createRecvTransport(
-        listener, id, iceParameters, iceCandidates, dtlsParameters, null, appData);
-  }
-
-  public RecvTransport createRecvTransport(
-      RecvTransport.Listener listener,
-      String id,
-      String iceParameters,
-      String iceCandidates,
-      String dtlsParameters,
-      PeerConnection.Options options,
-      String appData)
-      throws MediasoupException {
     checkDeviceExists();
+
+    org.webrtc.PeerConnection.RTCConfiguration config =
+            getRTCConfigurationFromPeerConnectionOptions();
+    long factory = getFactoryFromPeerConnectionOptions();
+
     return nativeCreateRecvTransport(
         mNativeDevice,
         listener,
@@ -98,10 +88,8 @@ public class Device {
         iceParameters,
         iceCandidates,
         dtlsParameters,
-        (options != null ? options.mRTCConfig : null),
-        (options != null && options.mFactory != null
-            ? options.mFactory.getNativePeerConnectionFactory()
-            : 0L),
+        config,
+        factory,
         appData);
   }
 
@@ -111,12 +99,28 @@ public class Device {
     }
   }
 
+  private org.webrtc.PeerConnection.RTCConfiguration getRTCConfigurationFromPeerConnectionOptions() {
+        return pcOptions != null ? pcOptions.mRTCConfig : null;
+  }
+
+  private long getFactoryFromPeerConnectionOptions() {
+    if (pcOptions == null || pcOptions.mFactory == null) {
+      return 0L;
+    }
+    return pcOptions.mFactory.getNativePeerConnectionFactory();
+  }
+
   private static native long nativeNewDevice();
 
   private static native void nativeFreeDevice(long device);
 
   // may throws MediasoupException;
-  private static native void nativeLoad(long device, String routerRtpCapabilities);
+  private static native void nativeLoad(
+          long device,
+          String routerRtpCapabilities,
+          org.webrtc.PeerConnection.RTCConfiguration configuration,
+          long peerConnectionFactory
+  );
 
   private static native boolean nativeIsLoaded(long device);
 
