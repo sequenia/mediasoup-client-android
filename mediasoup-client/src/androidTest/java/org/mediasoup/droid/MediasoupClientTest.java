@@ -150,7 +150,6 @@ public class MediasoupClientTest extends BaseTest {
               mIceParameters,
               mIceCandidates,
               mDtlsParameters,
-              null,
               appData);
 
       assertEquals(mId, sendTransport.getId());

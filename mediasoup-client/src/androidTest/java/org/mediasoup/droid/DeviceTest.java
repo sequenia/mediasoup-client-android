@@ -70,7 +70,7 @@ public class DeviceTest extends BaseTest {
       exceptionException(
           () ->
               mDevice.createSendTransport(
-                  listener, mId, mIceParameters, mIceCandidates, mDtlsParameters));
+                  listener, mId, mIceParameters, mIceCandidates, mDtlsParameters, null));
     }
 
     // 'device->CreateRecvTransport()' fails if not loaded.
@@ -105,7 +105,7 @@ public class DeviceTest extends BaseTest {
           new FakeTransportListener.FakeSendTransportListener();
       SendTransport transport =
           mDevice.createSendTransport(
-              listener, mId, mIceParameters, mIceCandidates, mDtlsParameters);
+              listener, mId, mIceParameters, mIceCandidates, mDtlsParameters, null);
       transport.dispose();
     }
 
