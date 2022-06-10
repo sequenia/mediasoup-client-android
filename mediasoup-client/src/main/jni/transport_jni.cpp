@@ -10,6 +10,7 @@
 #include <include/java_types.h>
 #include <sdk/android/native_api/jni/java_types.h>
 #include <sdk/android/src/jni/pc/rtp_parameters.h>
+#include <sdk/android/src/jni/pc/ice_candidate.h>
 
 namespace mediasoupclient
 {
@@ -186,6 +187,16 @@ static void JNI_Transport_UpdateIceServers(
 		MSC_ERROR("%s", e.what());
 		THROW_MEDIASOUP_CLIENT_EXCEPTION(env, e);
 	}
+}
+
+static void JNI_Transport_UpdateIceTransportType(
+        JNIEnv* env,
+        const base::android::JavaParamRef<jobject>& j_transport,
+        const webrtc::JavaParamRef<jobject>& iceTransportsType)
+{
+	MSC_TRACE();
+	auto type = webrtc::jni::JavaToNativeIceTransportsType(env, iceTransportsType);
+	ExtractNativeTransport(env, j_transport)->UpdateIceTransportType(type);
 }
 
 static void JNI_Transport_Close(JNIEnv* env, const JavaParamRef<jobject>& j_transport)

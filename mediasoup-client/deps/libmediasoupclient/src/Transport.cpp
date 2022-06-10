@@ -118,6 +118,16 @@ namespace mediasoupclient
 		  this, PeerConnection::iceConnectionState2String[connectionState]);
 	}
 
+    void Transport::UpdateIceTransportType(
+            const webrtc::PeerConnectionInterface::IceTransportsType type) {
+        MSC_TRACE();
+
+        if (this->closed)
+            MSC_THROW_INVALID_STATE_ERROR("Transport closed");
+        else
+            return this->handler->UpdateIceTransportType(type);
+    }
+
 	/* SendTransport */
 
 	SendTransport::SendTransport(

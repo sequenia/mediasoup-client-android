@@ -1,6 +1,7 @@
 package org.mediasoup.droid;
 
 import org.webrtc.CalledByNative;
+import org.webrtc.PeerConnection.IceTransportsType;
 
 public abstract class Transport {
 
@@ -30,6 +31,15 @@ public abstract class Transport {
 
   public void updateIceServers(String iceServersDescription) throws MediasoupException {
     nativeUpdateIceServers(iceServersDescription);
+  }
+
+  public void updateIceTransportType(String typeStringValue) {
+    IceTransportsType type = IceTransportsType.valueOf(typeStringValue.toUpperCase());
+    updateIceTransportType(type);
+  }
+
+  public void updateIceTransportType(IceTransportsType type) {
+    nativeUpdateIceTransportType(type);
   }
 
   public void close() {
@@ -66,4 +76,6 @@ public abstract class Transport {
   private native void nativeUpdateIceServers(String iceServersDescription);
 
   private native void nativeClose();
+
+  private native void nativeUpdateIceTransportType(IceTransportsType type);
 }

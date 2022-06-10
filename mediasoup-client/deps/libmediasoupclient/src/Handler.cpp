@@ -138,7 +138,21 @@ namespace mediasoupclient
 		// May throw.
 		this->privateListener->OnConnect(dtlsParameters);
 		this->transportReady = true;
-	};
+	}
+
+    void Handler::UpdateIceTransportType(
+            const webrtc::PeerConnectionInterface::IceTransportsType type)
+    {
+        MSC_TRACE();
+
+        auto configuration = this->pc->GetConfiguration();
+        configuration.type = type;
+
+        if (this->pc->SetConfiguration(configuration))
+            return;
+
+        MSC_THROW_ERROR("failed to update ICE transport type");
+    }
 
 	/* SendHandler instance methods. */
 

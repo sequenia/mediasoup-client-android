@@ -14,6 +14,7 @@
 #include <jni.h>
 
 #include "../include/jni_generator_helper.h"
+#include "sdk/android/native_api/jni/scoped_java_ref.h"
 
 
 // Step 1: Forward declarations.
@@ -120,6 +121,22 @@ JNI_GENERATOR_EXPORT void Java_org_mediasoup_droid_Transport_nativeUpdateIceServ
     jstring iceServersDescription) {
   return JNI_Transport_UpdateIceServers(env, base::android::JavaParamRef<jobject>(env, jcaller),
       base::android::JavaParamRef<jstring>(env, iceServersDescription));
+}
+
+static void JNI_Transport_UpdateIceTransportType(
+        JNIEnv* env,
+        const base::android::JavaParamRef<jobject>& j_transport,
+        const webrtc::JavaParamRef<jobject>& iceTransportsType
+);
+
+JNI_GENERATOR_EXPORT void Java_org_mediasoup_droid_Transport_nativeUpdateIceTransportType(
+        JNIEnv* env,
+        jobject j_transport,
+        jobject iceTransportsType) {
+    return JNI_Transport_UpdateIceTransportType(
+            env,
+            base::android::JavaParamRef<jobject>(env, j_transport),
+            webrtc::JavaParamRef<jobject>(env, iceTransportsType));
 }
 
 static void JNI_Transport_Close(JNIEnv* env, const base::android::JavaParamRef<jobject>& jcaller);
