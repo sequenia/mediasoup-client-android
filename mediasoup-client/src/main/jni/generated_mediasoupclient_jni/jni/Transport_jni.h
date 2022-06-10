@@ -117,9 +117,9 @@ static void JNI_Transport_UpdateIceServers(JNIEnv* env, const base::android::Jav
 JNI_GENERATOR_EXPORT void Java_org_mediasoup_droid_Transport_nativeUpdateIceServers(
     JNIEnv* env,
     jobject jcaller,
-    jstring iceServers) {
+    jstring iceServersDescription) {
   return JNI_Transport_UpdateIceServers(env, base::android::JavaParamRef<jobject>(env, jcaller),
-      base::android::JavaParamRef<jstring>(env, iceServers));
+      base::android::JavaParamRef<jstring>(env, iceServersDescription));
 }
 
 static void JNI_Transport_Close(JNIEnv* env, const base::android::JavaParamRef<jobject>& jcaller);

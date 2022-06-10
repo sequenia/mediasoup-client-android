@@ -28,8 +28,8 @@ public abstract class Transport {
     nativeRestartIce(iceParameters);
   }
 
-  public void updateIceServers(String iceServers) throws MediasoupException {
-    nativeUpdateIceServers(iceServers);
+  public void updateIceServers(String iceServersDescription) throws MediasoupException {
+    nativeUpdateIceServers(iceServersDescription);
   }
 
   public void close() {
@@ -63,7 +63,7 @@ public abstract class Transport {
   private native void nativeRestartIce(String iceParameters);
 
   // may throws MediasoupException;
-  private native void nativeUpdateIceServers(String iceServers);
+  private native void nativeUpdateIceServers(String iceServersDescription);
 
   private native void nativeClose();
 }

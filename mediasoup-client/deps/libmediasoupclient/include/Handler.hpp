@@ -50,7 +50,7 @@ namespace mediasoupclient
 	public:
 		void Close();
 		nlohmann::json GetTransportStats();
-		void UpdateIceServers(const nlohmann::json& iceServerUris);
+		void UpdateIceServers(const nlohmann::json& iceServersDescription);
 		virtual void RestartIce(const nlohmann::json& iceParameters) = 0;
 
 	protected:

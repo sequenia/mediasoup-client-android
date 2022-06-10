@@ -79,14 +79,14 @@ namespace mediasoupclient
 			return this->handler->RestartIce(iceParameters);
 	}
 
-	void Transport::UpdateIceServers(const json& iceServers)
+	void Transport::UpdateIceServers(const json& iceServersDescription)
 	{
 		MSC_TRACE();
 
 		if (this->closed)
 			MSC_THROW_INVALID_STATE_ERROR("Transport closed");
 		else
-			return this->handler->UpdateIceServers(iceServers);
+			return this->handler->UpdateIceServers(iceServersDescription);
 	}
 
 	void Transport::SetHandler(Handler* handler)

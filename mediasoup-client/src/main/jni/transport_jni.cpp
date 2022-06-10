@@ -167,18 +167,19 @@ static void JNI_Transport_RestartIce(
 }
 
 static void JNI_Transport_UpdateIceServers(
-  JNIEnv* env, const JavaParamRef<jobject>& j_transport, const JavaParamRef<jstring>& j_iceServers)
+  JNIEnv* env, const JavaParamRef<jobject>& j_transport,
+  const JavaParamRef<jstring>& j_iceServersDescription)
 {
 	MSC_TRACE();
 
 	try
 	{
-		auto iceServers = json::array();
-		if (!j_iceServers.is_null())
+		auto iceServersDescription = json::array();
+		if (!j_iceServersDescription.is_null())
 		{
-			iceServers = json::parse(JavaToNativeString(env, j_iceServers));
+			iceServersDescription = json::parse(JavaToNativeString(env, j_iceServersDescription));
 		}
-		ExtractNativeTransport(env, j_transport)->UpdateIceServers(iceServers);
+		ExtractNativeTransport(env, j_transport)->UpdateIceServers(iceServersDescription);
 	}
 	catch (const std::exception& e)
 	{
