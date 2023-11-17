@@ -5,6 +5,7 @@
 #include "MediaSoupClientErrors.hpp"
 #include "PeerConnection.hpp"
 #include "ortc.hpp"
+#include "scalabilityMode.hpp"
 #include "sdptransform.hpp"
 #include "sdp/Utils.hpp"
 #include <cinttypes> // PRIu64, etc
@@ -68,6 +69,12 @@ namespace mediasoupclient
 	{
 		MSC_TRACE();
 
+		if (dtlsParameters.find("role") != dtlsParameters.end() && dtlsParameters["role"].get<std::string>() != "auto")
+		{
+			this->forcedLocalDtlsRole =
+			  dtlsParameters["role"].get<std::string>() == "server" ? "client" : "server";
+		}
+
 		this->pc.reset(new PeerConnection(this, peerConnectionOptions));
 
 		this->remoteSdp.reset(
@@ -88,7 +95,7 @@ namespace mediasoupclient
 		return this->pc->GetStats();
 	}
 
-	void Handler::UpdateIceServers(const json& iceServersDescription)
+	void Handler::UpdateIceServers(const json& iceServerUris)
 	{
 		MSC_TRACE();
 
@@ -96,12 +103,13 @@ namespace mediasoupclient
 
 		configuration.servers.clear();
 
-		for (const auto& iceServerDescription : iceServersDescription)
+		for (const auto& iceServerUri : iceServerUris)
 		{
 			webrtc::PeerConnectionInterface::IceServer iceServer;
-			iceServer.urls = iceServerDescription.at("urls").get<std::vector<std::string>>();
-			iceServer.username = iceServerDescription.at("username").get<std::string>();
-			iceServer.password = iceServerDescription.at("credential").get<std::string>();
+
+            iceServer.urls = iceServerUri.at("urls").get<std::vector<std::string>>();
+            iceServer.username = iceServerUri.at("username").get<std::string>();
+            iceServer.password = iceServerUri.at("credential").get<std::string>();
 			configuration.servers.push_back(iceServer);
 		}
 
@@ -178,7 +186,8 @@ namespace mediasoupclient
 	SendHandler::SendResult SendHandler::Send(
 	  webrtc::MediaStreamTrackInterface* track,
 	  std::vector<webrtc::RtpEncodingParameters>* encodings,
-	  const json* codecOptions)
+	  const json* codecOptions,
+	  const json* codec)
 	{
 		MSC_TRACE();
 
@@ -197,9 +206,21 @@ namespace mediasoupclient
 			}
 		}
 
+		json sendingRtpParameters = this->sendingRtpParametersByKind[track->kind()];
+
+		// This may throw.
+		sendingRtpParameters["codecs"] = ortc::reduceCodecs(sendingRtpParameters["codecs"], codec);
+
+		json sendingRemoteRtpParameters = this->sendingRemoteRtpParametersByKind[track->kind()];
+
+		// This may throw.
+		sendingRemoteRtpParameters["codecs"] =
+		  ortc::reduceCodecs(sendingRemoteRtpParameters["codecs"], codec);
+
 		const Sdp::RemoteSdp::MediaSectionIdx mediaSectionIdx = this->remoteSdp->GetNextMediaSectionIdx();
 
 		webrtc::RtpTransceiverInit transceiverInit;
+		transceiverInit.direction = webrtc::RtpTransceiverDirection::kSendOnly;
 
 		if (encodings && !encodings->empty())
 			transceiverInit.send_encodings = *encodings;
@@ -209,11 +230,11 @@ namespace mediasoupclient
 		if (!transceiver)
 			MSC_THROW_ERROR("error creating transceiver");
 
-		transceiver->SetDirection(webrtc::RtpTransceiverDirection::kSendOnly);
-
 		std::string offer;
 		std::string localId;
-		json& sendingRtpParameters = this->sendingRtpParametersByKind[track->kind()];
+
+		// Special case for VP9 with SVC.
+		bool hackVp9Svc = false;
 
 		try
 		{
@@ -224,7 +245,35 @@ namespace mediasoupclient
 
 			// Transport is not ready.
 			if (!this->transportReady)
-				this->SetupTransport("server", localSdpObject);
+				this->SetupTransport(
+				  !this->forcedLocalDtlsRole.empty() ? this->forcedLocalDtlsRole : "server", localSdpObject);
+
+			std::string scalability_mode =
+			  encodings && encodings->size()
+			    ? ((*encodings)[0].scalability_mode.has_value() ? (*encodings)[0].scalability_mode.value()
+			                                                    : "")
+			    : "";
+
+			const json& layers = parseScalabilityMode(scalability_mode);
+
+			auto spatialLayers = layers["spatialLayers"].get<int>();
+
+			auto mimeType = sendingRtpParameters["codecs"][0]["mimeType"].get<std::string>();
+
+			std::transform(mimeType.begin(), mimeType.end(), mimeType.begin(), ::tolower);
+
+			if (encodings && encodings->size() == 1 && spatialLayers > 1 && mimeType == "video/vp9")
+			{
+				MSC_DEBUG("send() | enabling legacy simulcast for VP9 SVC");
+
+				hackVp9Svc             = true;
+				localSdpObject         = sdptransform::parse(offer);
+				json& offerMediaObject = localSdpObject["media"][mediaSectionIdx.idx];
+
+				Sdp::Utils::addLegacySimulcast(offerMediaObject, spatialLayers);
+
+				offer = sdptransform::write(localSdpObject);
+			}
 
 			MSC_DEBUG("calling pc->SetLocalDescription():\n%s", offer.c_str());
 
@@ -239,7 +288,7 @@ namespace mediasoupclient
 		catch (std::exception& error)
 		{
 			// Panic here. Try to undo things.
-			transceiver->SetDirection(webrtc::RtpTransceiverDirection::kInactive);
+			transceiver->SetDirectionWithError(webrtc::RtpTransceiverDirection::kInactive);
 			transceiver->sender()->SetTrack(nullptr);
 
 			throw;
@@ -265,9 +314,13 @@ namespace mediasoupclient
 			auto newEncodings = Sdp::Utils::getRtpEncodings(offerMediaObject);
 
 			fillJsonRtpEncodingParameters(newEncodings.front(), encodings->front());
+
+			// Hack for VP9 SVC.
+			if (hackVp9Svc)
+				newEncodings = json::array({ newEncodings[0] });
+
 			sendingRtpParameters["encodings"] = newEncodings;
 		}
-
 		// Otherwise if more than 1 encoding are given use them verbatim.
 		else
 		{
@@ -304,7 +357,7 @@ namespace mediasoupclient
 		  offerMediaObject,
 		  mediaSectionIdx.reuseMid,
 		  sendingRtpParameters,
-		  this->sendingRemoteRtpParametersByKind[track->kind()],
+		  sendingRemoteRtpParameters,
 		  codecOptions);
 
 		auto answer = this->remoteSdp->GetSdp();
@@ -385,7 +438,8 @@ namespace mediasoupclient
 
 			if (!this->transportReady)
 			{
-				this->SetupTransport("server", localSdpObject);
+				this->SetupTransport(
+				  !this->forcedLocalDtlsRole.empty() ? this->forcedLocalDtlsRole : "server", localSdpObject);
 			}
 
 			MSC_DEBUG("calling pc.setLocalDescription() [offer:%s]", offer.c_str());
@@ -639,7 +693,8 @@ namespace mediasoupclient
 		answer = sdptransform::write(localSdpObject);
 
 		if (!this->transportReady)
-			this->SetupTransport("client", localSdpObject);
+			this->SetupTransport(
+			  !this->forcedLocalDtlsRole.empty() ? this->forcedLocalDtlsRole : "client", localSdpObject);
 
 		MSC_DEBUG("calling pc->SetLocalDescription():\n%s", answer.c_str());
 
@@ -708,7 +763,8 @@ namespace mediasoupclient
 			if (!this->transportReady)
 			{
 				auto localSdpObject = sdptransform::parse(sdpAnswer);
-				this->SetupTransport("client", localSdpObject);
+				this->SetupTransport(
+				  !this->forcedLocalDtlsRole.empty() ? this->forcedLocalDtlsRole : "client", localSdpObject);
 			}
 
 			MSC_DEBUG("calling pc->setLocalDescription() [answer: %s]", sdpAnswer.c_str());
@@ -829,6 +885,9 @@ static void fillJsonRtpEncodingParameters(json& jsonEncoding, const webrtc::RtpE
 
 	if (encoding.scale_resolution_down_by)
 		jsonEncoding["scaleResolutionDownBy"] = *encoding.scale_resolution_down_by;
+
+	if (encoding.scalability_mode.has_value())
+		jsonEncoding["scalabilityMode"] = *encoding.scalability_mode;
 
 	jsonEncoding["networkPriority"] = encoding.network_priority;
 }

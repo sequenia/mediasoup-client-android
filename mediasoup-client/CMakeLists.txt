@@ -23,6 +23,8 @@ set(
 	${SOURCE_DIR}/scoped_java_ref.cpp
 	${SOURCE_DIR}/java_types.cpp
 	${SOURCE_DIR}/consumer_jni.cpp
+	${SOURCE_DIR}/data_consumer_jni.cpp
+	${SOURCE_DIR}/data_producer_jni.cpp
 	${SOURCE_DIR}/device_jni.cpp
 	${SOURCE_DIR}/logger_jni.cpp
 	${SOURCE_DIR}/mediasoup_client_jni.cpp
@@ -76,6 +78,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_compile_definitions(${PROJECT_NAME} PUBLIC
 	$<$<NOT:$<PLATFORM_ID:Windows>>:WEBRTC_POSIX>
 	$<$<PLATFORM_ID:Windows>:WEBRTC_WIN>
+	$<$<PLATFORM_ID:Windows>:NOMINMAX>
+	$<$<PLATFORM_ID:Windows>:WIN32_LEAN_AND_MEAN>
 	$<$<PLATFORM_ID:Darwin>:WEBRTC_MAC>
 )
 

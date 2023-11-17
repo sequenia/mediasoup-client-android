@@ -79,14 +79,14 @@ namespace mediasoupclient
 			return this->handler->RestartIce(iceParameters);
 	}
 
-	void Transport::UpdateIceServers(const json& iceServersDescription)
+	void Transport::UpdateIceServers(const json& iceServers)
 	{
 		MSC_TRACE();
 
 		if (this->closed)
 			MSC_THROW_INVALID_STATE_ERROR("Transport closed");
 		else
-			return this->handler->UpdateIceServers(iceServersDescription);
+			return this->handler->UpdateIceServers(iceServers);
 	}
 
 	void Transport::SetHandler(Handler* handler)
@@ -187,6 +187,7 @@ namespace mediasoupclient
 	  webrtc::MediaStreamTrackInterface* track,
 	  const std::vector<webrtc::RtpEncodingParameters>* encodings,
 	  const json* codecOptions,
+	  const json* codec,
 	  const json& appData)
 	{
 		MSC_TRACE();
@@ -219,13 +220,14 @@ namespace mediasoupclient
 				  encoding.max_framerate            = entry.max_framerate;
 				  encoding.scale_resolution_down_by = entry.scale_resolution_down_by;
 				  encoding.network_priority         = entry.network_priority;
+				  encoding.scalability_mode         = entry.scalability_mode;
 
 				  normalizedEncodings.push_back(encoding);
 			  });
 		}
 
 		// May throw.
-		auto sendResult = this->sendHandler->Send(track, &normalizedEncodings, codecOptions);
+		auto sendResult = this->sendHandler->Send(track, &normalizedEncodings, codecOptions, codec);
 
 		try
 		{
@@ -279,7 +281,8 @@ namespace mediasoupclient
 		{
 			MSC_THROW_ERROR("Cannot set both maxRetransmits and maxPacketLifeTime");
 		}
-		if (maxRetransmits != 0)
+        // TODO(haiyangwu): PR ?
+		if (maxRetransmits != -1)
 		{
 			dataChannelInit.maxRetransmits = maxRetransmits;
 		}

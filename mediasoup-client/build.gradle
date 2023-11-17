@@ -1,5 +1,7 @@
-apply plugin: 'com.android.library'
-apply plugin: 'maven-publish'
+plugins {
+    id 'com.android.library'
+    id 'maven-publish'
+}
 
 // Source of webrtc.
 def WEBRTC_INC_PATH = "${projectDir}/deps/webrtc/src"
@@ -7,14 +9,14 @@ def WEBRTC_INC_PATH = "${projectDir}/deps/webrtc/src"
 def WEBRTC_LIB_PATH = "${projectDir}/deps/webrtc/lib"
 
 android {
-    compileSdkVersion 30
-    ndkVersion "20.0.5594570"
+    compileSdkVersion 31
+    ndkVersion '22.0.7026061'
 
     defaultConfig {
         minSdkVersion 23
-        targetSdkVersion 30
-        versionCode 309
-        versionName "3.1.5"
+        targetSdkVersion 31
+        versionCode 340
+        versionName '3.4.0'
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -86,7 +88,7 @@ afterEvaluate {
 
                 groupId = 'com.sequenia.gitlab.outsource'
                 artifactId = 'mediasoup-client'
-                version = '3.1.5'
+                version = '3.4.0'
             }
         }
     }

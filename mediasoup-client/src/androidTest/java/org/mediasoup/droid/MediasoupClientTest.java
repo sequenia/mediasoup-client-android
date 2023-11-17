@@ -34,6 +34,7 @@ public class MediasoupClientTest extends BaseTest {
   private String mIceParameters;
   private String mIceCandidates;
   private String mDtlsParameters;
+  private String mSctpParameters;
 
   @Override
   @Before
@@ -45,6 +46,7 @@ public class MediasoupClientTest extends BaseTest {
       mIceParameters = transportRemoteParameters.getString("iceParameters");
       mIceCandidates = transportRemoteParameters.getString("iceCandidates");
       mDtlsParameters = transportRemoteParameters.getString("dtlsParameters");
+      mSctpParameters = transportRemoteParameters.getString("sctpParameters");
     } catch (JSONException e) {
       e.printStackTrace();
       throw new IllegalStateException(e.getMessage());
@@ -77,6 +79,8 @@ public class MediasoupClientTest extends BaseTest {
     Consumer videoConsumer;
     Consumer audioConsumer2;
 
+    DataProducer dataProducer;
+
     // create a Device succeeds.
     {
       device = new Device();
@@ -101,26 +105,26 @@ public class MediasoupClientTest extends BaseTest {
       exceptionException(
           () ->
               device.createRecvTransport(
-                  listener, mId, mIceParameters, mIceCandidates, mDtlsParameters, null));
+                  listener, mId, mIceParameters, mIceCandidates, mDtlsParameters, mSctpParameters));
     }
 
     // device->load() with invalid routerRtpCapabilities throws.
     {
       final String cap = Parameters.nativeGenRouterRtpCapabilitiesExclude("mimeType");
-      exceptionException(() -> device.load(cap));
+      exceptionException(() -> device.load(cap, null));
     }
 
     // device->load() succeeds.
     {
       routerRtpCapabilities = Parameters.nativeGenRouterRtpCapabilities();
-      device.load(routerRtpCapabilities);
+      device.load(routerRtpCapabilities, null);
       assertTrue(device.isLoaded());
     }
 
     // device->load() rejects if already loaded.
     {
       final String cap = routerRtpCapabilities;
-      exceptionException(() -> device.load(cap));
+      exceptionException(() -> device.load(cap, null));
     }
 
     // 'device->getRtpCapabilities()' succeeds".
@@ -150,6 +154,8 @@ public class MediasoupClientTest extends BaseTest {
               mIceParameters,
               mIceCandidates,
               mDtlsParameters,
+              mSctpParameters,
+              null,
               appData);
 
       assertEquals(mId, sendTransport.getId());
@@ -162,7 +168,12 @@ public class MediasoupClientTest extends BaseTest {
       recvTransportListener = new FakeTransportListener.FakeRecvTransportListener();
       recvTransport =
           device.createRecvTransport(
-              recvTransportListener, mId, mIceParameters, mIceCandidates, mDtlsParameters, null);
+              recvTransportListener,
+              mId,
+              mIceParameters,
+              mIceCandidates,
+              mDtlsParameters,
+              mSctpParameters);
 
       assertEquals(mId, recvTransport.getId());
       assertFalse(recvTransport.isClosed());
@@ -175,9 +186,12 @@ public class MediasoupClientTest extends BaseTest {
       String appData = "{\"baz\":\"BAZ\"}";
 
       List<RtpParameters.Encoding> encodings = new ArrayList<>();
-      encodings.add(RTCUtils.genRtpEncodingParameters(null, false, 0, 0, 0, 0, 1.0d, 1L, true));
-      encodings.add(RTCUtils.genRtpEncodingParameters(null, false, 0, 0, 0, 0, 1.0d, 2L, true));
-      encodings.add(RTCUtils.genRtpEncodingParameters(null, false, 0, 0, 0, 0, 1.0d, 3L, true));
+      encodings.add(
+          RTCUtils.genRtpEncodingParameters(null, false, 1.0d, 1, 0, 0, 0, 0, 1.0d, 1L, false));
+      encodings.add(
+          RTCUtils.genRtpEncodingParameters(null, false, 1.0d, 1, 0, 0, 0, 0, 1.0d, 2L, false));
+      encodings.add(
+          RTCUtils.genRtpEncodingParameters(null, false, 1.0d, 1, 0, 0, 0, 0, 1.0d, 3L, false));
 
       audioTrack = PeerConnectionUtils.createAudioTrack(mContext, "audio-track-id");
       assertNotEquals(0, RTCUtils.getNativeMediaStreamTrack(audioTrack));
@@ -189,7 +203,7 @@ public class MediasoupClientTest extends BaseTest {
 
       String codecOptions = "{\"opusStereo\":true,\"opusDtx\":true}";
       audioProducer =
-          sendTransport.produce(producerListener, audioTrack, null, codecOptions, appData);
+          sendTransport.produce(producerListener, audioTrack, null, codecOptions, null, appData);
 
       assertEquals(
           ++sendTransportListener.mOnConnectExpectedTimesCalled,
@@ -276,9 +290,31 @@ public class MediasoupClientTest extends BaseTest {
       assertEquals("{}", videoProducer.getAppData());
     }
 
+    // "transport.produceData() succeeds
+    {
+      String appData = "{\"tdr\":\"TDR\"}";
+      dataProducer = sendTransport.produceData(producerListener, "", "", true, 0, 0, appData);
+
+      // connect has already been called for Producer
+      assertEquals(
+          sendTransportListener.mOnConnectTimesCalled,
+          sendTransportListener.mOnConnectExpectedTimesCalled);
+
+      assertEquals(sendTransportListener.mId, sendTransport.getId());
+
+      assertEquals(
+          ++sendTransportListener.mOnProduceDataExpectedTimesCalled,
+          sendTransportListener.mOnProduceDataExpectedTimesCalled);
+
+      assertEquals(dataProducer.getId(), sendTransportListener.mDataProducerId);
+      assertFalse(dataProducer.isClosed());
+      assertEquals(dataProducer.getAppData(), appData);
+    }
+
     // transport.produce() without track throws.
     {
-      exceptionException(() -> sendTransport.produce(producerListener, null, null, null));
+      exceptionException(
+          () -> sendTransport.produce(producerListener, null, null, null, null, null));
     }
 
     // transport.consume() succeeds.
@@ -611,7 +647,7 @@ public class MediasoupClientTest extends BaseTest {
       assertTrue(videoProducer.isClosed());
       // Audio Producer was already closed.
       assertEquals(
-          ++producerListener.mOnTransportCloseExpetecTimesCalled,
+          ++producerListener.mOnTransportCloseExpectedTimesCalled,
           producerListener.mOnTransportCloseTimesCalled);
 
       // Audio Consumer was already closed.
@@ -629,7 +665,8 @@ public class MediasoupClientTest extends BaseTest {
 
     // transport.produce() throws if closed.
     {
-      exceptionException(() -> sendTransport.produce(producerListener, audioTrack, null, null));
+      exceptionException(
+          () -> sendTransport.produce(producerListener, audioTrack, null, null, null));
     }
 
     // transport.consume() throws if closed.
@@ -678,6 +715,6 @@ public class MediasoupClientTest extends BaseTest {
 
   @Test
   public void version() {
-    assertEquals(MediasoupClient.version(), BuildConfig.VERSION_NAME);
+    assertEquals(MediasoupClient.version(), "3.4.0");
   }
 }

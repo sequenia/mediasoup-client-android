@@ -3,9 +3,9 @@
 #include "ortc.hpp"
 #include "Logger.hpp"
 #include "MediaSoupClientErrors.hpp"
-#include <api/video_codecs/h264_profile_level_id.h>
 #include "media/base/codec.h"
 #include "media/base/sdp_video_format_utils.h"
+#include <api/video_codecs/h264_profile_level_id.h>
 #include <algorithm> // std::find_if
 #include <regex>
 #include <stdexcept>
@@ -917,7 +917,9 @@ namespace mediasoupclient
 			auto opusStereoIt              = params.find("opusStereo");
 			auto opusFecIt                 = params.find("opusFec");
 			auto opusDtxIt                 = params.find("opusDtx");
+			auto opusCbrIt                 = params.find("opusCbr");
 			auto opusMaxPlaybackRateIt     = params.find("opusMaxPlaybackRate");
+			auto opusMaxAverageBitrateIt   = params.find("opusMaxAverageBitrate");
 			auto opusPtimeIt               = params.find("opusPtime");
 			auto videoGoogleStartBitrateIt = params.find("videoGoogleStartBitrate");
 			auto videoGoogleMaxBitrateIt   = params.find("videoGoogleMaxBitrate");
@@ -938,9 +940,19 @@ namespace mediasoupclient
 				MSC_THROW_TYPE_ERROR("invalid params.opusDtx");
 			}
 
+			if (opusCbrIt != params.end() && !opusCbrIt->is_boolean())
+			{
+				MSC_THROW_TYPE_ERROR("invalid params.opusCbr");
+			}
+
 			if (opusMaxPlaybackRateIt != params.end() && !opusMaxPlaybackRateIt->is_number_unsigned())
 			{
 				MSC_THROW_TYPE_ERROR("invalid params.opusMaxPlaybackRate");
+			}
+
+			if (opusMaxAverageBitrateIt != params.end() && !opusMaxAverageBitrateIt->is_number_unsigned())
+			{
+				MSC_THROW_TYPE_ERROR("invalid params.opusMaxAverageBitrate");
 			}
 
 			if (opusPtimeIt != params.end() && !opusPtimeIt->is_number_integer())
@@ -1548,6 +1560,44 @@ namespace mediasoupclient
 
 			return codecIt != codecs.end();
 		}
+
+		nlohmann::json reduceCodecs(nlohmann::json& codecs, const nlohmann::json* capCodec)
+		{
+			MSC_TRACE();
+
+			nlohmann::json filteredCodecs = nlohmann::json::array();
+
+			// If no capability codec is given, take the first one (and RTX).
+			if (!capCodec || !capCodec->is_object())
+			{
+				filteredCodecs.push_back(codecs[0]);
+
+				if (codecs.size() > 1 && isRtxCodec(codecs[1]))
+					filteredCodecs.push_back(codecs[1]);
+			}
+			// Otherwise look for a compatible set of codecs.
+			else
+			{
+				for (int idx = 0; idx < codecs.size(); ++idx)
+				{
+					if (matchCodecs(codecs[idx], const_cast<json&>(*capCodec)))
+					{
+						filteredCodecs.push_back(codecs[idx]);
+
+						if (isRtxCodec(codecs[idx + 1]))
+							filteredCodecs.push_back(codecs[idx + 1]);
+
+						break;
+					}
+				}
+
+				if (filteredCodecs.size() == 0)
+					MSC_THROW_TYPE_ERROR("no matching codec found");
+			}
+
+			return filteredCodecs;
+		}
+
 	} // namespace ortc
 } // namespace mediasoupclient
 
@@ -1593,15 +1643,14 @@ static bool matchCodecs(json& aCodec, json& bCodec, bool strict, bool modify)
 	// Match H264 parameters.
 	if (aMimeType == "video/h264")
 	{
-		auto aPacketizationMode = getH264PacketizationMode(aCodec);
-		auto bPacketizationMode = getH264PacketizationMode(bCodec);
-
-		if (aPacketizationMode != bPacketizationMode)
-			return false;
-
-		// If strict matching check profile-level-id.
 		if (strict)
 		{
+			auto aPacketizationMode = getH264PacketizationMode(aCodec);
+			auto bPacketizationMode = getH264PacketizationMode(bCodec);
+
+			if (aPacketizationMode != bPacketizationMode)
+				return false;
+
 			cricket::CodecParameterMap aParameters;
 			cricket::CodecParameterMap bParameters;
 
@@ -1646,7 +1695,6 @@ static bool matchCodecs(json& aCodec, json& bCodec, bool strict, bool modify)
 	// Match VP9 parameters.
 	else if (aMimeType == "video/vp9")
 	{
-		// If strict matching check profile-id.
 		if (strict)
 		{
 			auto aProfileId = getVP9ProfileId(aCodec);

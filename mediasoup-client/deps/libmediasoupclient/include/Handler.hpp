@@ -50,8 +50,8 @@ namespace mediasoupclient
 	public:
 		void Close();
 		nlohmann::json GetTransportStats();
-		void UpdateIceServers(const nlohmann::json& iceServersDescription);
-		void UpdateIceTransportType(const webrtc::PeerConnectionInterface::IceTransportsType type);
+		void UpdateIceServers(const nlohmann::json& iceServerUris);
+        void UpdateIceTransportType(const webrtc::PeerConnectionInterface::IceTransportsType type);
 		virtual void RestartIce(const nlohmann::json& iceParameters) = 0;
 
 	protected:
@@ -74,6 +74,9 @@ namespace mediasoupclient
 		std::unique_ptr<PeerConnection> pc{ nullptr };
 		bool hasDataChannelMediaSection = false;
 		uint32_t nextSendSctpStreamId   = 0;
+		// Initial server side DTLS role. If not 'auto', it will force the opposite
+		// value in client side.
+		std::string forcedLocalDtlsRole;
 	};
 
 	class SendHandler : public Handler
@@ -101,7 +104,8 @@ namespace mediasoupclient
 		SendResult Send(
 		  webrtc::MediaStreamTrackInterface* track,
 		  std::vector<webrtc::RtpEncodingParameters>* encodings,
-		  const nlohmann::json* codecOptions);
+		  const nlohmann::json* codecOptions,
+		  const nlohmann::json* codec);
 		void StopSending(const std::string& localId);
 		void ReplaceTrack(const std::string& localId, webrtc::MediaStreamTrackInterface* track);
 		void SetMaxSpatialLayer(const std::string& localId, uint8_t spatialLayer);

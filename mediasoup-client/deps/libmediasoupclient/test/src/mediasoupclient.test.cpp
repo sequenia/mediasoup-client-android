@@ -190,8 +190,8 @@ TEST_CASE("mediasoupclient", "[mediasoupclient]")
 		};
 		/* clang-format on */
 
-		REQUIRE_NOTHROW(audioProducer.reset(
-		  sendTransport->Produce(&producerListener, audioTrack, nullptr, &codecOptions, appData)));
+		REQUIRE_NOTHROW(audioProducer.reset(sendTransport->Produce(
+		  &producerListener, audioTrack, nullptr, &codecOptions, nullptr, appData)));
 
 		REQUIRE(
 		  sendTransportListener.onConnectTimesCalled ==
@@ -235,7 +235,7 @@ TEST_CASE("mediasoupclient", "[mediasoupclient]")
 		audioProducer->Resume();
 
 		REQUIRE_NOTHROW(videoProducer.reset(
-		  sendTransport->Produce(&producerListener, videoTrack, &encodings, nullptr)));
+		  sendTransport->Produce(&producerListener, videoTrack, &encodings, nullptr, nullptr)));
 
 		REQUIRE(
 		  sendTransportListener.onConnectTimesCalled ==
@@ -305,7 +305,31 @@ TEST_CASE("mediasoupclient", "[mediasoupclient]")
 	SECTION("transport.produce() without track throws")
 	{
 		REQUIRE_THROWS_AS(
-		  sendTransport->Produce(&producerListener, nullptr, nullptr, nullptr), MediaSoupClientTypeError);
+		  sendTransport->Produce(&producerListener, nullptr, nullptr, nullptr, nullptr),
+		  MediaSoupClientTypeError);
+	}
+
+	SECTION("transport.produceData() on transport without sctpParameters throws")
+	{
+		/* clang-format off */
+		json appData =
+		{
+			{ "tdr", "TDR" }
+		};
+		/* clang-format on */
+
+		REQUIRE_NOTHROW(sendTransportNoSctp.reset(device->CreateSendTransport(
+		  &sendTransportListener,
+		  TransportRemoteParameters["id"],
+		  TransportRemoteParameters["iceParameters"],
+		  TransportRemoteParameters["iceCandidates"],
+		  TransportRemoteParameters["dtlsParameters"],
+		  nullptr,
+		  appData)));
+
+		REQUIRE_THROWS_AS(
+		  sendTransportNoSctp->ProduceData(&producerListener, "", "", true, 0, 0, appData),
+		  MediaSoupClientError);
 	}
 
 	SECTION("transport.produceData() on transport without sctpParameters throws")
@@ -766,7 +790,7 @@ TEST_CASE("mediasoupclient", "[mediasoupclient]")
 		REQUIRE_THROWS_AS(
 			sendTransport->Produce(
 				&producerListener,
-				audioTrack, nullptr, nullptr),
+				audioTrack, nullptr,  nullptr, nullptr),
 			MediaSoupClientError);
 	}
 

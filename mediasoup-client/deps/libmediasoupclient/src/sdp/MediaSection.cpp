@@ -207,11 +207,26 @@ namespace mediasoupclient
 								codecParameters["usedtx"]          = opusDtx ? 1 : 0;
 							}
 
+							auto opusCbrIt = codecOptions->find("opusCbr");
+							if (opusCbrIt != codecOptions->end())
+							{
+								auto opusCbr                    = opusCbrIt->get<bool>();
+								offerCodec["parameters"]["cbr"] = opusCbr ? 1 : 0;
+								codecParameters["cbr"]          = opusCbr ? 1 : 0;
+							}
+
 							auto opusMaxPlaybackRateIt = codecOptions->find("opusMaxPlaybackRate");
 							if (opusMaxPlaybackRateIt != codecOptions->end())
 							{
 								auto opusMaxPlaybackRate           = opusMaxPlaybackRateIt->get<uint32_t>();
 								codecParameters["maxplaybackrate"] = opusMaxPlaybackRate;
+							}
+
+							auto opusMaxAverageBitrateIt = codecOptions->find("opusMaxAverageBitrate");
+							if (opusMaxAverageBitrateIt != codecOptions->end())
+							{
+								auto opusMaxAverageBitrate           = opusMaxAverageBitrateIt->get<uint32_t>();
+								codecParameters["maxaveragebitrate"] = opusMaxAverageBitrate;
 							}
 
 							auto opusPtimeIt = codecOptions->find("opusPtime");

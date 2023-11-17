@@ -4,7 +4,7 @@ project(mediasoupclient LANGUAGES CXX)
 
 # Set version number.
 set(mediasoupclient_VERSION_MAJOR 3)
-set(mediasoupclient_VERSION_MINOR 3)
+set(mediasoupclient_VERSION_MINOR 4)
 set(mediasoupclient_VERSION_PATCH 0)
 
 # Configure a header file to pass the version.
@@ -129,24 +129,27 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 # Public (interface) dependencies.
 if("${ANDROID_ABI}" STREQUAL "")
-target_link_libraries(${PROJECT_NAME} PUBLIC
-	sdptransform
-	${LIBWEBRTC_BINARY_PATH}/libwebrtc${CMAKE_STATIC_LIBRARY_SUFFIX}
-)
+	target_link_libraries(${PROJECT_NAME} PUBLIC
+		sdptransform
+		${LIBWEBRTC_BINARY_PATH}/libwebrtc${CMAKE_STATIC_LIBRARY_SUFFIX}
+	)
 else()
-# Add '-whole-archive' to keep symbols from peerconnection_jni.
-# https://stackoverflow.com/a/5687860/2085408
-SET (webrtc -Wl,--whole-archive ${LIBWEBRTC_BINARY_PATH}/${ANDROID_ABI}/libwebrtc${CMAKE_STATIC_LIBRARY_SUFFIX}  -Wl,--no-whole-archive)
-target_link_libraries(${PROJECT_NAME} PUBLIC
-	sdptransform
-	${webrtc}
-)
+	# Add '-whole-archive' to keep symbols from peerconnection_jni.
+	# https://stackoverflow.com/a/5687860/2085408
+	SET (webrtc -Wl,--whole-archive ${LIBWEBRTC_BINARY_PATH}/${ANDROID_ABI}/libwebrtc${CMAKE_STATIC_LIBRARY_SUFFIX}  -Wl,--no-whole-archive)
+
+	target_link_libraries(${PROJECT_NAME} PUBLIC
+			sdptransform
+			${webrtc}
+			)
 endif()
 
 # Compile definitions for libwebrtc.
 target_compile_definitions(${PROJECT_NAME} PUBLIC
 	$<$<NOT:$<PLATFORM_ID:Windows>>:WEBRTC_POSIX>
 	$<$<PLATFORM_ID:Windows>:WEBRTC_WIN>
+	$<$<PLATFORM_ID:Windows>:NOMINMAX>
+	$<$<PLATFORM_ID:Windows>:WIN32_LEAN_AND_MEAN>
 	$<$<PLATFORM_ID:Darwin>:WEBRTC_MAC>
 )
 
