@@ -29,6 +29,7 @@ namespace mediasoupclient
 		class Listener
 		{
 		public:
+			virtual ~Listener() = default;
 			virtual std::future<void> OnConnect(Transport* transport, const nlohmann::json& dtlsParameters) = 0;
 			virtual void OnConnectionStateChange(Transport* transport, const std::string& connectionState) = 0;
 		};
@@ -51,7 +52,7 @@ namespace mediasoupclient
 		nlohmann::json GetStats() const;
 		void RestartIce(const nlohmann::json& iceParameters);
 		void UpdateIceServers(const nlohmann::json& iceServers);
-        void UpdateIceTransportType(const webrtc::PeerConnectionInterface::IceTransportsType type);
+		void UpdateIceTransportType(const webrtc::PeerConnectionInterface::IceTransportsType type);
 
 	protected:
 		void SetHandler(Handler* handler);

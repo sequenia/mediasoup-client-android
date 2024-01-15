@@ -85,6 +85,9 @@ namespace mediasoupclient
 	{
 		MSC_TRACE();
 
+		// Clear the stored transceivers before closing the PeerConnection.
+		this->mapMidTransceiver.clear();
+
 		this->pc->Close();
 	};
 
@@ -95,7 +98,7 @@ namespace mediasoupclient
 		return this->pc->GetStats();
 	}
 
-	void Handler::UpdateIceServers(const json& iceServerUris)
+	void Handler::UpdateIceServers(const json& iceServersDescription)
 	{
 		MSC_TRACE();
 
@@ -103,13 +106,25 @@ namespace mediasoupclient
 
 		configuration.servers.clear();
 
-		for (const auto& iceServerUri : iceServerUris)
+		for (const auto& iceServerDescription : iceServersDescription)
 		{
+			if (!iceServerDescription.contains("urls")) {
+				continue;
+			}
 			webrtc::PeerConnectionInterface::IceServer iceServer;
-
-            iceServer.urls = iceServerUri.at("urls").get<std::vector<std::string>>();
-            iceServer.username = iceServerUri.at("username").get<std::string>();
-            iceServer.password = iceServerUri.at("credential").get<std::string>();
+			if (iceServerDescription["urls"].is_string()) {
+				iceServer.urls = { iceServerDescription["urls"].get<std::string>() };
+			} else if (iceServerDescription["urls"].is_array()) {
+				iceServer.urls = iceServerDescription["urls"].get<std::vector<std::string>>();
+			} else {
+				continue;
+			}
+			if (iceServerDescription.contains("username")) {
+				iceServer.username = iceServerDescription["username"].get<std::string>();
+			}
+			if (iceServerDescription.contains("credential")) {
+				iceServer.password = iceServerDescription["credential"].get<std::string>();
+			}
 			configuration.servers.push_back(iceServer);
 		}
 
@@ -148,19 +163,19 @@ namespace mediasoupclient
 		this->transportReady = true;
 	}
 
-    void Handler::UpdateIceTransportType(
-            const webrtc::PeerConnectionInterface::IceTransportsType type)
-    {
-        MSC_TRACE();
+	void Handler::UpdateIceTransportType(
+			const webrtc::PeerConnectionInterface::IceTransportsType type)
+	{
+		MSC_TRACE();
 
-        auto configuration = this->pc->GetConfiguration();
-        configuration.type = type;
+		auto configuration = this->pc->GetConfiguration();
+		configuration.type = type;
 
-        if (this->pc->SetConfiguration(configuration))
-            return;
+		if (this->pc->SetConfiguration(configuration))
+			return;
 
-        MSC_THROW_ERROR("failed to update ICE transport type");
-    }
+		MSC_THROW_ERROR("failed to update ICE transport type");
+	}
 
 	/* SendHandler instance methods. */
 
@@ -225,7 +240,8 @@ namespace mediasoupclient
 		if (encodings && !encodings->empty())
 			transceiverInit.send_encodings = *encodings;
 
-		webrtc::RtpTransceiverInterface* transceiver = this->pc->AddTransceiver(track, transceiverInit);
+		rtc::scoped_refptr<webrtc::MediaStreamTrackInterface> sharedTrack{ track };
+		auto transceiver = this->pc->AddTransceiver(sharedTrack, transceiverInit);
 
 		if (!transceiver)
 			MSC_THROW_ERROR("error creating transceiver");
@@ -474,7 +490,7 @@ namespace mediasoupclient
 		if (locaIdIt == this->mapMidTransceiver.end())
 			MSC_THROW_ERROR("associated RtpTransceiver not found");
 
-		auto* transceiver = locaIdIt->second;
+		auto transceiver = locaIdIt->second;
 
 		transceiver->sender()->SetTrack(nullptr);
 		this->pc->RemoveTrack(transceiver->sender());
@@ -513,7 +529,7 @@ namespace mediasoupclient
 		if (localIdIt == this->mapMidTransceiver.end())
 			MSC_THROW_ERROR("associated RtpTransceiver not found");
 
-		auto* transceiver = localIdIt->second;
+		rtc::scoped_refptr<webrtc::RtpTransceiverInterface> transceiver = localIdIt->second;
 
 		transceiver->sender()->SetTrack(track);
 	}
@@ -529,7 +545,7 @@ namespace mediasoupclient
 		if (localIdIt == this->mapMidTransceiver.end())
 			MSC_THROW_ERROR("associated RtpTransceiver not found");
 
-		auto* transceiver = localIdIt->second;
+		auto transceiver = localIdIt->second;
 		auto parameters   = transceiver->sender()->GetParameters();
 
 		bool hasLowEncoding{ false };
@@ -596,7 +612,7 @@ namespace mediasoupclient
 		if (localIdIt == this->mapMidTransceiver.end())
 			MSC_THROW_ERROR("associated RtpTransceiver not found");
 
-		auto* transceiver = localIdIt->second;
+		auto transceiver = localIdIt->second;
 		auto stats        = this->pc->GetStats(transceiver->sender());
 
 		return stats;
@@ -703,7 +719,7 @@ namespace mediasoupclient
 
 		auto transceivers  = this->pc->GetTransceivers();
 		auto transceiverIt = std::find_if(
-		  transceivers.begin(), transceivers.end(), [&localId](webrtc::RtpTransceiverInterface* t) {
+		  transceivers.begin(), transceivers.end(), [&localId](rtc::scoped_refptr<webrtc::RtpTransceiverInterface> t) {
 			  return t->mid() == localId;
 		  });
 

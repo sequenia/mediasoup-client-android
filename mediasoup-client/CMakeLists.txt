@@ -4,11 +4,11 @@ project(mediasoupclient_so LANGUAGES CXX)
 
 # Set version number.
 set(mediasoup_client_so_VERSION_MAJOR 3)
-set(mediasoup_client_so_VERSION_MINOR 1)
-set(mediasoup_client_so_VERSION_PATCH 5)
+set(mediasoup_client_so_VERSION_MINOR 4)
+set(mediasoup_client_so_VERSION_PATCH 1)
 
 # C++ standard requirements.
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(

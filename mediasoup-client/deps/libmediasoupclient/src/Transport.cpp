@@ -118,15 +118,15 @@ namespace mediasoupclient
 		  this, PeerConnection::iceConnectionState2String[connectionState]);
 	}
 
-    void Transport::UpdateIceTransportType(
-            const webrtc::PeerConnectionInterface::IceTransportsType type) {
-        MSC_TRACE();
+	void Transport::UpdateIceTransportType(
+			const webrtc::PeerConnectionInterface::IceTransportsType type) {
+		MSC_TRACE();
 
-        if (this->closed)
-            MSC_THROW_INVALID_STATE_ERROR("Transport closed");
-        else
-            return this->handler->UpdateIceTransportType(type);
-    }
+		if (this->closed)
+			MSC_THROW_INVALID_STATE_ERROR("Transport closed");
+		else
+			return this->handler->UpdateIceTransportType(type);
+	}
 
 	/* SendTransport */
 
@@ -250,7 +250,7 @@ namespace mediasoupclient
 		  producerListener,
 		  producerId,
 		  sendResult.localId,
-		  sendResult.rtpSender,
+		  sendResult.rtpSender.get(),
 		  track,
 		  sendResult.rtpParameters,
 		  appData);
@@ -281,8 +281,7 @@ namespace mediasoupclient
 		{
 			MSC_THROW_ERROR("Cannot set both maxRetransmits and maxPacketLifeTime");
 		}
-        // TODO(haiyangwu): PR ?
-		if (maxRetransmits != -1)
+		if (maxRetransmits != 0)
 		{
 			dataChannelInit.maxRetransmits = maxRetransmits;
 		}
@@ -446,8 +445,8 @@ namespace mediasoupclient
 		  id,
 		  recvResult.localId,
 		  producerId,
-		  recvResult.rtpReceiver,
-		  recvResult.track,
+		  recvResult.rtpReceiver.get(),
+		  recvResult.track.get(),
 		  *rtpParameters,
 		  appData);
 

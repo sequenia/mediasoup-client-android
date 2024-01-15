@@ -187,7 +187,7 @@ static jboolean JNI_PeerConnection_RemoveTrack(
 	MSC_TRACE();
 
 	auto sender = reinterpret_cast<webrtc::RtpSenderInterface*>(native_sender);
-	auto result = ExtractNativePC(env, j_pc)->RemoveTrack(sender);
+	auto result = ExtractNativePC(env, j_pc)->RemoveTrack(rtc::scoped_refptr<webrtc::RtpSenderInterface>(sender));
 	return static_cast<jboolean>(result);
 }
 
@@ -195,11 +195,11 @@ static ScopedJavaLocalRef<jobject> JNI_PeerConnection_AddTransceiverWithTrack(
   JNIEnv* env, const JavaParamRef<jobject>& j_pc, jlong native_track, const JavaParamRef<jobject>& j_init)
 {
 	MSC_TRACE();
-
+	auto track = reinterpret_cast<webrtc::MediaStreamTrackInterface*>(native_track);
 	webrtc::RTCErrorOr<rtc::scoped_refptr<webrtc::RtpTransceiverInterface>> result =
-	  ExtractNativePC(env, j_pc)->AddTransceiver(
-	    reinterpret_cast<webrtc::MediaStreamTrackInterface*>(native_track),
-	    webrtc::jni::JavaToNativeRtpTransceiverInit(env, webrtc::JavaParamRef<jobject>(j_init.obj())));
+      ExtractNativePC(env, j_pc)->AddTransceiver(
+          rtc::scoped_refptr<webrtc::MediaStreamTrackInterface>(track),
+          webrtc::jni::JavaToNativeRtpTransceiverInit(env, webrtc::JavaParamRef<jobject>(j_init.obj())));
 	if (!result.ok())
 	{
 		MSC_ERROR("Failed to add transceiver: %s", result.error().message());

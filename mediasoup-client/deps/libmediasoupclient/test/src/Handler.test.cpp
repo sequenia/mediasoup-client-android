@@ -8,6 +8,7 @@
 
 static const json TransportRemoteParameters = generateTransportRemoteParameters();
 static const json RtpParametersByKind       = generateRtpParametersByKind();
+static const json IceServers                = generateIceServers();
 
 static mediasoupclient::PeerConnection::Options PeerConnectionOptions;
 
@@ -66,7 +67,7 @@ TEST_CASE("SendHandler", "[Handler][SendHandler]")
 
 		mediasoupclient::SendHandler::SendResult sendResult;
 
-		REQUIRE_NOTHROW(sendResult = sendHandler.Send(track, nullptr, nullptr, nullptr));
+		REQUIRE_NOTHROW(sendResult = sendHandler.Send(track.get(), nullptr, nullptr, nullptr));
 
 		localId = sendResult.localId;
 
@@ -76,7 +77,7 @@ TEST_CASE("SendHandler", "[Handler][SendHandler]")
 
 	SECTION("sendHandler.Send() succeeds if track is already handled")
 	{
-		REQUIRE_NOTHROW(sendHandler.Send(track, nullptr, nullptr, nullptr));
+		REQUIRE_NOTHROW(sendHandler.Send(track.get(), nullptr, nullptr, nullptr));
 	}
 
 	SECTION("sendHandler.ReplaceTrack() fails if an invalid localId is provided")
@@ -88,7 +89,7 @@ TEST_CASE("SendHandler", "[Handler][SendHandler]")
 	{
 		auto newTrack = createAudioTrack("test-new-track-id");
 
-		REQUIRE_NOTHROW(sendHandler.ReplaceTrack(localId, newTrack));
+		REQUIRE_NOTHROW(sendHandler.ReplaceTrack(localId, newTrack.get()));
 
 		track = newTrack;
 	}
@@ -122,7 +123,7 @@ TEST_CASE("SendHandler", "[Handler][SendHandler]")
 	{
 		mediasoupclient::SendHandler::SendResult sendResult;
 
-		REQUIRE_NOTHROW(sendResult = sendHandler.Send(track, nullptr, nullptr, nullptr));
+		REQUIRE_NOTHROW(sendResult = sendHandler.Send(track.get(), nullptr, nullptr, nullptr));
 
 		localId = sendResult.localId;
 	}
@@ -201,8 +202,13 @@ TEST_CASE("RecvHandler", "[Handler][RecvHandler]")
 		REQUIRE_NOTHROW(recvHandler.RestartIce(iceParameters));
 	}
 
-	SECTION("recvHandler.UpdateIceServers() succeeds")
+	SECTION("recvHandler.UpdateIceServers() succeeds with empty array")
 	{
 		REQUIRE_NOTHROW(recvHandler.UpdateIceServers(json::array()));
+	}
+
+	SECTION("recvHandler.UpdateIceServers() succeeds with non-empty array")
+	{
+		REQUIRE_NOTHROW(recvHandler.UpdateIceServers(IceServers));
 	}
 }

@@ -2,19 +2,22 @@ cmake_minimum_required(VERSION 3.5)
 
 project(mediasoupclient LANGUAGES CXX)
 
+include(FetchContent)
+
 # Set version number.
 set(mediasoupclient_VERSION_MAJOR 3)
 set(mediasoupclient_VERSION_MINOR 4)
-set(mediasoupclient_VERSION_PATCH 0)
+set(mediasoupclient_VERSION_PATCH 1)
 
 # Configure a header file to pass the version.
 configure_file (
 	"${PROJECT_SOURCE_DIR}/version.hpp.in"
 	"${PROJECT_SOURCE_DIR}/include/version.hpp"
+	NEWLINE_STYLE LF
 )
 
 # C++ standard requirements.
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Project options.
@@ -106,7 +109,14 @@ if(${MEDIASOUPCLIENT_LOG_DEV})
 endif()
 
 # Source Dependencies.
-add_subdirectory(deps/libsdptransform "${CMAKE_CURRENT_BINARY_DIR}/libsdptransform")
+
+message(STATUS "\nFetching libsdptransform...\n")
+FetchContent_Declare(
+	libsdptransform
+  	GIT_REPOSITORY https://github.com/ibc/libsdptransform.git
+  	GIT_TAG 1.2.10
+)
+FetchContent_MakeAvailable(libsdptransform)
 
 # Add some compile flags to our source files.
 if(MSVC)
@@ -122,7 +132,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include
 
 # Public (interface) headers from dependencies.
 target_include_directories(${PROJECT_NAME} PUBLIC
-	"${PROJECT_SOURCE_DIR}/deps/libsdptransform/include"
+    "${libsdptransform_SOURCE_DIR}/include"
 	"${LIBWEBRTC_INCLUDE_PATH}"
 	"${LIBWEBRTC_INCLUDE_PATH}/third_party/abseil-cpp"
 )
